@@ -46,8 +46,8 @@ pub const NO_DEVICE: &str =
 /// Opens the output: the saved device, else the default.
 type Opener = fn(Option<&str>, u32, &AudioControl) -> Result<Output, OpenError>;
 
-/// Maximum queued rodio chunks before `write` blocks, about 200 ms of audio.
-const QUEUE_LIMIT: usize = 12;
+/// Maximum queued rodio chunks before `write` blocks (~800ms of audio headroom).
+const QUEUE_LIMIT: usize = 64;
 
 /// How much of a full queue rodio plays before `write` is woken to top it
 /// up. librespot's packets hold 4 to 13 ms of sound, so polling every 10 ms
@@ -1014,7 +1014,7 @@ fn output_options(device: fastframe_audio::Device, buffer_ms: u32) -> OutputOpti
         device,
         channels: NUM_CHANNELS as u16,
         sample_rate: Some(SAMPLE_RATE),
-        buffer: Buffer::FixedOnWindows(BufferSize::Duration(Duration::from_millis(u64::from(
+        buffer: Buffer::Fixed(BufferSize::Duration(Duration::from_millis(u64::from(
             buffer_ms,
         )))),
         follow_default: true,
@@ -1191,7 +1191,7 @@ mod tests {
     #[test]
     fn the_buffer_follows_the_setting_within_its_range() {
         let buffer = |ms| output_options(fastframe_audio::Device::Default, ms).buffer;
-        let fixed = |ms| Buffer::FixedOnWindows(BufferSize::Duration(Duration::from_millis(ms)));
+        let fixed = |ms| Buffer::Fixed(BufferSize::Duration(Duration::from_millis(ms)));
         assert_eq!(buffer(100), fixed(100));
         assert_eq!(buffer(0), fixed(u64::from(*BUFFER_MS_RANGE.start())));
         assert_eq!(buffer(100_000), fixed(u64::from(*BUFFER_MS_RANGE.end())));

@@ -1,0 +1,35 @@
+name: Build Patched Linux Binary
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ fix/linux-audio-queue-buffer ]
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    name: Build Linux x86_64 Patched
+    runs-on: ubuntu-24.04
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+      - run: rustup target add x86_64-unknown-linux-gnu
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libpipewire-0.3-dev libxkbcommon-dev \
+            libwayland-dev libgl1-mesa-dev cmake libclang-dev ninja-build
+      - name: Cargo Build Release
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spotifast-linux-patched
+          path: target/x86_64-unknown-linux-gnu/release/spotifast
+          if-no-files-found: error
